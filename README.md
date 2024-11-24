@@ -62,7 +62,7 @@ Salsa Alya Istiqamah - 2210010089 - UTS Aplikasi Resep Masakan
 ![Demo Aplikasi](img/UTS.gif)
 
 
-## Catatan Pengembang
+## Catatan 
 
 - Pastikan file `resep.db` dapat diakses oleh aplikasi. Jika file belum ada, aplikasi akan otomatis membuat database baru.
 - Jika terjadi error, pastikan JDK dan SQLite sudah terinstal dengan benar di sistem Anda.
