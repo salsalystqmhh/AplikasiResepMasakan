@@ -4,18 +4,82 @@
  */
 package aplikasiresepmasakan;
 
+import java.io.File;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+
 /**
  *
  * @author LENOVO
  */
 public class Uts extends javax.swing.JFrame {
 
+    private DefaultTableModel modelTabel;
     /**
      * Creates new form Uts
      */
     public Uts() {
         initComponents();
+       createTable(); // Buat tabel jika belum ada
+       modelTabel = new DefaultTableModel(new String[]{"Nama Resep", "Bahan", "Langkah-langkah"}, 0);
+       tableResep.setModel(modelTabel);
+       loadData(); // Muat data dari database
     }
+    
+     // Koneksi ke database SQLite
+    private Connection connect() {
+        try {
+            String url = "jdbc:sqlite:resep.db"; // Path ke database
+            return DriverManager.getConnection(url);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Gagal terhubung ke database: " + e.getMessage(), "Kesalahan", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+    }
+    
+    private void createTable() {
+    String sql = "CREATE TABLE IF NOT EXISTS resep ("
+               + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+               + "nama TEXT NOT NULL,"
+               + "bahan TEXT NOT NULL,"
+               + "langkah TEXT NOT NULL"
+               + ");";
+
+    try (Connection conn = connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+        stmt.execute();
+    } catch (SQLException e) {
+        JOptionPane.showMessageDialog(this, "Gagal membuat tabel: " + e.getMessage(), "Kesalahan", JOptionPane.ERROR_MESSAGE);
+    }
+    }
+
+     // Muat data dari database ke JTable
+    private void loadData() {
+      try (Connection conn = connect();
+         PreparedStatement stmt = conn.prepareStatement("SELECT * FROM resep");
+         ResultSet rs = stmt.executeQuery()) {
+
+        modelTabel.setRowCount(0); // Kosongkan tabel sebelum memuat data baru
+
+        while (rs.next()) {
+            // Tambahkan nama resep, bahan, dan langkah-langkah pada baris pertama
+            modelTabel.addRow(new Object[]{
+                rs.getString("nama"),
+                rs.getString("bahan").replace("\n", ", "),
+                rs.getString("langkah").replace("\n", ", ")
+            });
+        }
+    } catch (SQLException e) {
+        JOptionPane.showMessageDialog(this, "Gagal memuat data: " + e.getMessage(), "Kesalahan", JOptionPane.ERROR_MESSAGE);
+    }
+}
+
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -29,16 +93,21 @@ public class Uts extends javax.swing.JFrame {
         jPanel2 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
-        txtResep = new javax.swing.JTextField();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        txtDeskripsi = new javax.swing.JTextArea();
+        txtNamaResep = new javax.swing.JTextField();
         btnTambah = new javax.swing.JButton();
         btnHapus = new javax.swing.JButton();
         btnUbah = new javax.swing.JButton();
         btnKeluar = new javax.swing.JButton();
         jScrollPane2 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
+        tableResep = new javax.swing.JTable();
         jLabel3 = new javax.swing.JLabel();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        txtBahan = new javax.swing.JTextArea();
+        jLabel4 = new javax.swing.JLabel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        txtLangkah = new javax.swing.JTextArea();
+        jLabel5 = new javax.swing.JLabel();
+        jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -46,13 +115,14 @@ public class Uts extends javax.swing.JFrame {
 
         jLabel1.setText("Nama Resep");
 
-        jLabel2.setText("Deskripsi");
-
-        txtDeskripsi.setColumns(20);
-        txtDeskripsi.setRows(5);
-        jScrollPane1.setViewportView(txtDeskripsi);
+        jLabel2.setText("Bahan");
 
         btnTambah.setText("Tambah");
+        btnTambah.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnTambahActionPerformed(evt);
+            }
+        });
 
         btnHapus.setText("Hapus");
         btnHapus.addActionListener(new java.awt.event.ActionListener() {
@@ -62,10 +132,20 @@ public class Uts extends javax.swing.JFrame {
         });
 
         btnUbah.setText("Ubah");
+        btnUbah.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnUbahActionPerformed(evt);
+            }
+        });
 
         btnKeluar.setText("Keluar");
+        btnKeluar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnKeluarActionPerformed(evt);
+            }
+        });
 
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+        tableResep.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null},
                 {null, null, null, null},
@@ -76,10 +156,29 @@ public class Uts extends javax.swing.JFrame {
                 "Title 1", "Title 2", "Title 3", "Title 4"
             }
         ));
-        jScrollPane2.setViewportView(jTable1);
+        jScrollPane2.setViewportView(tableResep);
 
         jLabel3.setFont(new java.awt.Font("Californian FB", 0, 18)); // NOI18N
-        jLabel3.setText("APLIKASI RESEP MAKANAN");
+        jLabel3.setText("APLIKASI RESEP MASAKAN");
+
+        txtBahan.setColumns(20);
+        txtBahan.setRows(5);
+        jScrollPane3.setViewportView(txtBahan);
+
+        jLabel4.setText("Langkah-Langkah");
+
+        txtLangkah.setColumns(20);
+        txtLangkah.setRows(5);
+        jScrollPane1.setViewportView(txtLangkah);
+
+        jLabel5.setText("RESEP");
+
+        jButton1.setText("Simpan");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -90,52 +189,75 @@ public class Uts extends javax.swing.JFrame {
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addGap(73, 73, 73)
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 433, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addGroup(jPanel2Layout.createSequentialGroup()
                                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addComponent(jLabel1)
                                     .addComponent(jLabel2))
-                                .addGap(71, 71, 71)
                                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                        .addComponent(jScrollPane1)
-                                        .addComponent(txtResep))
-                                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                                        .addComponent(btnKeluar, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                        .addGroup(jPanel2Layout.createSequentialGroup()
-                                            .addComponent(btnTambah)
-                                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                            .addComponent(btnHapus)
-                                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                            .addComponent(btnUbah)))))))
+                                    .addGroup(jPanel2Layout.createSequentialGroup()
+                                        .addGap(71, 71, 71)
+                                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                            .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addComponent(txtNamaResep, javax.swing.GroupLayout.PREFERRED_SIZE, 234, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGap(57, 57, 57)
+                                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                                .addComponent(btnTambah)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                .addComponent(btnHapus)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                .addComponent(btnUbah))
+                                            .addComponent(btnKeluar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                            .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                                    .addGroup(jPanel2Layout.createSequentialGroup()
+                                        .addGap(86, 86, 86)
+                                        .addComponent(jLabel3))))
+                            .addComponent(jLabel4)
+                            .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 698, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addGap(174, 174, 174)
-                        .addComponent(jLabel3)))
-                .addContainerGap(69, Short.MAX_VALUE))
+                        .addGap(91, 91, 91)
+                        .addComponent(jLabel5)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
-                .addGap(18, 18, 18)
+                .addGap(17, 17, 17)
                 .addComponent(jLabel3)
-                .addGap(55, 55, 55)
+                .addGap(56, 56, 56)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1)
-                    .addComponent(txtResep, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
+                    .addComponent(txtNamaResep, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel2)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 114, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btnTambah)
-                    .addComponent(btnHapus)
-                    .addComponent(btnUbah))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(btnKeluar)
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addGap(18, 18, 18)
+                        .addComponent(jLabel2))
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addGap(3, 3, 3)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(btnTambah)
+                                    .addComponent(btnHapus)
+                                    .addComponent(btnUbah))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(btnKeluar)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(jButton1)))))
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addGap(9, 9, 9)
+                        .addComponent(jLabel4))
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 7, Short.MAX_VALUE)
+                .addComponent(jLabel5)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 171, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(31, Short.MAX_VALUE))
+                .addGap(16, 16, 16))
         );
 
         getContentPane().add(jPanel2, java.awt.BorderLayout.CENTER);
@@ -144,9 +266,186 @@ public class Uts extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnHapusActionPerformed
-        // TODO add your handling code here:
+         int index = tableResep.getSelectedRow();
+        if (index < 0) {
+            JOptionPane.showMessageDialog(this, "Pilih data yang ingin dihapus!", "Kesalahan", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String nama = (String) modelTabel.getValueAt(index, 0);
+
+        String sql = "DELETE FROM resep WHERE nama = ?";
+
+        try (Connection conn = connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, nama);
+            stmt.executeUpdate();
+            JOptionPane.showMessageDialog(this, "Resep berhasil dihapus!", "Informasi", JOptionPane.INFORMATION_MESSAGE);
+
+            loadData();
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Gagal menghapus data: " + e.getMessage(), "Kesalahan", JOptionPane.ERROR_MESSAGE);
+        }
     }//GEN-LAST:event_btnHapusActionPerformed
 
+    private void btnTambahActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnTambahActionPerformed
+    String nama = txtNamaResep.getText().trim();
+    String bahan = txtBahan.getText().trim();
+    String langkah = txtLangkah.getText().trim();
+
+    if (nama.isEmpty() || bahan.isEmpty() || langkah.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Semua kolom harus diisi!", "Kesalahan", JOptionPane.ERROR_MESSAGE);
+        return;
+    }
+
+    String sql = "INSERT INTO resep (nama, bahan, langkah) VALUES (?, ?, ?)";
+
+    try (Connection conn = connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+        stmt.setString(1, nama);
+        stmt.setString(2, bahan.replace("\r", "")); // Normalize line endings
+        stmt.setString(3, langkah.replace("\r", ""));
+        stmt.executeUpdate();
+        JOptionPane.showMessageDialog(this, "Resep berhasil ditambahkan!", "Informasi", JOptionPane.INFORMATION_MESSAGE);
+
+        txtNamaResep.setText("");
+        txtBahan.setText("");
+        txtLangkah.setText("");
+        loadData();
+    } catch (SQLException e) {
+        JOptionPane.showMessageDialog(this, "Gagal menambahkan data: " + e.getMessage(), "Kesalahan", JOptionPane.ERROR_MESSAGE);
+    }
+    }//GEN-LAST:event_btnTambahActionPerformed
+
+    private void btnUbahActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUbahActionPerformed
+        int index = tableResep.getSelectedRow(); // Mendapatkan baris yang dipilih di JTable
+    if (index < 0) {
+        JOptionPane.showMessageDialog(this, "Pilih data yang ingin diubah!", "Kesalahan", JOptionPane.ERROR_MESSAGE);
+        return;
+    }
+
+    // Mendapatkan nama lama sebagai identifikasi di database
+    String namaLama = (String) modelTabel.getValueAt(index, 0);
+
+    // Mendapatkan input baru dari pengguna
+    String namaBaru = txtNamaResep.getText().trim();
+    String bahanBaru = txtBahan.getText().trim();
+    String langkahBaru = txtLangkah.getText().trim();
+
+    // Mendapatkan data lama jika input kosong
+    String nama = namaBaru.isEmpty() ? (String) modelTabel.getValueAt(index, 0) : namaBaru;
+    String bahan = bahanBaru.isEmpty() ? (String) modelTabel.getValueAt(index, 1) : bahanBaru;
+    String langkah = langkahBaru.isEmpty() ? (String) modelTabel.getValueAt(index, 2) : langkahBaru;
+
+    // SQL untuk memperbarui data
+    String sql = "UPDATE resep SET nama = ?, bahan = ?, langkah = ? WHERE nama = ?";
+
+    try (Connection conn = connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+        stmt.setString(1, nama);
+        stmt.setString(2, bahan);
+        stmt.setString(3, langkah);
+        stmt.setString(4, namaLama);
+        stmt.executeUpdate();
+
+        JOptionPane.showMessageDialog(this, "Data berhasil diubah!", "Informasi", JOptionPane.INFORMATION_MESSAGE);
+
+        // Reset input form dan reload data dari database
+        txtNamaResep.setText("");
+        txtBahan.setText("");
+        txtLangkah.setText("");
+        loadData();
+    } catch (SQLException e) {
+        JOptionPane.showMessageDialog(this, "Gagal mengubah data: " + e.getMessage(), "Kesalahan", JOptionPane.ERROR_MESSAGE);
+    }
+    }//GEN-LAST:event_btnUbahActionPerformed
+
+    private void btnKeluarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnKeluarActionPerformed
+        int confirm = JOptionPane.showConfirmDialog(this, "Apakah Anda yakin ingin keluar?", "Konfirmasi", JOptionPane.YES_NO_OPTION);
+        if (confirm == JOptionPane.YES_OPTION) {
+            System.exit(0);
+        }
+    }//GEN-LAST:event_btnKeluarActionPerformed
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+       saveTableToCSV();
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    // Event handler untuk klik tabel (menampilkan data di form)
+    private void tableResepMouseClicked(java.awt.event.MouseEvent evt) {                                         
+         int index = tableResep.getSelectedRow();
+        if (index >= 0) {
+            String nama = (String) modelTabel.getValueAt(index, 0);
+            String bahan = (String) modelTabel.getValueAt(index, 1);
+            String langkah = (String) modelTabel.getValueAt(index, 2);
+
+            txtNamaResep.setText(nama);
+            txtBahan.setText(bahan);
+            txtLangkah.setText(langkah);
+        }
+    }
+    
+    private void saveTableToCSV() {
+    System.out.println("Memulai metode saveTableToCSV"); // Debug awal
+    
+    // Membuka dialog untuk memilih lokasi penyimpanan file CSV
+    JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setDialogTitle("Pilih lokasi untuk menyimpan file CSV");
+    fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("CSV Files", "csv"));
+
+    int userSelection = fileChooser.showSaveDialog(null); // Ganti 'this' dengan 'null' agar dialog muncul
+    System.out.println("Dialog file chooser muncul");
+
+    if (userSelection == JFileChooser.APPROVE_OPTION) {
+        File fileToSave = fileChooser.getSelectedFile();
+        System.out.println("User memilih file: " + fileToSave.getAbsolutePath());
+
+        // Tambahkan ekstensi .csv jika tidak ada
+        if (!fileToSave.getName().endsWith(".csv")) {
+            fileToSave = new File(fileToSave.getAbsolutePath() + ".csv");
+            System.out.println("Ekstensi .csv ditambahkan: " + fileToSave.getAbsolutePath());
+        }
+
+        try (PrintWriter writer = new PrintWriter(fileToSave)) {
+            javax.swing.table.TableModel model = tableResep.getModel();
+            int rowCount = model.getRowCount();
+            int colCount = model.getColumnCount();
+
+            System.out.println("Jumlah baris: " + rowCount + ", Jumlah kolom: " + colCount);
+
+            // Tulis header tabel
+            for (int col = 0; col < colCount; col++) {
+                writer.print(model.getColumnName(col)); // Menulis nama kolom
+                if (col < colCount - 1) {
+                    writer.print(","); // Tambahkan koma jika bukan kolom terakhir
+                }
+            }
+            writer.println(); // Pindah ke baris baru setelah header
+
+            // Tulis data tabel
+            for (int row = 0; row < rowCount; row++) {
+                for (int col = 0; col < colCount; col++) {
+                    Object value = model.getValueAt(row, col);
+                    writer.print(value != null ? value.toString() : ""); // Null-safe
+                    if (col < colCount - 1) {
+                        writer.print(","); // Tambahkan koma jika bukan kolom terakhir
+                    }
+                }
+                writer.println(); // Pindah ke baris baru setelah setiap baris data
+            }
+
+            System.out.println("Data tabel berhasil ditulis ke file CSV");
+            javax.swing.JOptionPane.showMessageDialog(
+                null,
+                "File CSV berhasil disimpan ke " + fileToSave.getAbsolutePath()
+            );
+        } catch (Exception e) {
+            javax.swing.JOptionPane.showMessageDialog(
+                null,
+                "Gagal menyimpan file CSV: " + e.getMessage()
+            );
+        }
+    } else {
+        System.out.println("User membatalkan penyimpanan");
+    }
+    }
     /**
      * @param args the command line arguments
      */
@@ -187,14 +486,21 @@ public class Uts extends javax.swing.JFrame {
     private javax.swing.JButton btnKeluar;
     private javax.swing.JButton btnTambah;
     private javax.swing.JButton btnUbah;
+    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JTable jTable1;
-    private javax.swing.JTextArea txtDeskripsi;
-    private javax.swing.JTextField txtResep;
+    private javax.swing.JScrollPane jScrollPane3;
+    private javax.swing.JTable tableResep;
+    private javax.swing.JTextArea txtBahan;
+    private javax.swing.JTextArea txtLangkah;
+    private javax.swing.JTextField txtNamaResep;
     // End of variables declaration//GEN-END:variables
+
+    
 }
